@@ -62,7 +62,7 @@ df_to_plot = filter_data(df, pth)
 fig = px.scatter_mapbox(
     df_to_plot,
     lat = "latitude", lon="longitude", size="size_to_plot", color="NUMBER OF MONTHS REPORTED", hover_name="agency_name_full",
-    zoom= 2.7,
+    zoom= 2.7, center={'lat':37.0902, 'lon':-95.7129},
     color_continuous_scale=[(0,"#f55b5b"),(0.7, "#87c487"), (1,"#a2d5f5")],
     animation_frame="year",
     mapbox_style="carto-positron"
