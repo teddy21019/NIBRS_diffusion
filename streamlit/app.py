@@ -25,28 +25,29 @@ with st.expander("Details", False):
 
     I downloaded the **Master File** for NIBRS for each year. Specifically, I extracted the **Batch Header**
     from each year. The batch header either starts with "B1, 2, 3" (before 2012) or "BH" (after 2012).
-    I did not use data from NACJD. They did an excellent job in integrating agency data with incident data,
+    I did not use data from NACJD. They did an excellent job of integrating agency data with incident data,
     but since I only need information about agencies, it turned out to be harder to handle.
 
     The [perfect instruction written by Jacob Kaplan](https://nibrsbook.com/overview-of-the-data.html#the-data-as-you-get-it-from-the-fbi)
-    helped me a lot on understanding the encoding.
+    helped me a lot in understanding the encoding.
 
     ### Columns
 
     I extracted the following columns from the batch header lines:
-    - `ORI` : Code for agencies
-    - `CURRENT POPULATION 1`: The population for the agency or the population of the portion of the agency which is located in the county.
-    - `NUMBER OF MONTHS REPORTED`: This is self explanatory.
 
-    Other variables as well as their description can be found in the official documentation from FBI.
-    There is also a series of variables called `AGENCY ACTIVITY INDICATOR {month}` that allows us to
-    get the monthly dummy of whether an agency reported to NIBRS. In the following plot I only show the total number of months reported for simplicity.
+    - `ORI`: Code for agencies
+    - `CURRENT POPULATION 1`: The population for the agency or the population of the portion of the agency located in the county.
+    - `NUMBER OF MONTHS REPORTED`: This is self-explanatory.
+
+    Other variables, as well as their descriptions, can be found in the official documentation from the FBI.
+    There is also a series of variables called `AGENCY ACTIVITY INDICATOR {month}` that allow us to
+    get the monthly dummy of whether an agency reported to NIBRS. In the following plot, I only show the total number of months reported for simplicity.
 
     ### Coordinates
-    I also merge coordinates of ORIs from the data provided by
-             [The MarshallProject](https://observablehq.com/@themarshallproject/participation-in-the-fbi-national-crime-data-collection).
-        It contains coordinates of 17118 agencies (I'm not sure of the criteria of filtering), including NYPD, LAPD, etc., which is used
-        to depict the benchmark map in [this article](https://www.themarshallproject.org/2022/06/14/what-did-fbi-data-say-about-crime-in-2021-it-s-too-unreliable-to-tell)
+
+    I also merged coordinates of ORIs from the data provided by [The Marshall Project](https://observablehq.com/@themarshallproject/participation-in-the-fbi-national-crime-data-collection).
+    It contains coordinates of 17,118 agencies (I'm not sure of the criteria for filtering), including NYPD, LAPD, etc., which is used
+    to depict the benchmark map in [this article](https://www.themarshallproject.org/2022/06/14/what-did-fbi-data-say-about-crime-in-2021-it-s-too-unreliable-to-tell).
     """)
     the_mp_map = Image.open("streamlit/the marshall project benchmark.png")
     st.image(the_mp_map, caption="The figure presented in The Marshall Project to demonstrate the agency participation data compiled by the Federal Bureau of Investigation on Feb. 7, 2022")
