@@ -65,7 +65,12 @@ fig = px.scatter_mapbox(
     zoom= 2.7, center={'lat':37.0902, 'lon':-95.7129},
     color_continuous_scale=[(0,"#f55b5b"),(0.7, "#87c487"), (1,"#a2d5f5")],
     animation_frame="year",
-    mapbox_style="carto-positron"
+    mapbox_style="carto-positron",
+    hover_data={
+        'size_to_plot': False,
+        'latitude': False, 'longitude':False,
+    },
+    labels={'NUMBER OF MONTHS REPORTED': 'Number of Months Reported'}
 )
 fig.update_layout(height=600, margin={"r":0,"t":20,"l":50,"b":0})
 fig.update_coloraxes(colorbar={'orientation':'h', 'thickness':20, 'y': 1})
