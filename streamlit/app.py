@@ -8,9 +8,9 @@ from PIL import Image
 @st.cache_data
 def read_data():
     return pd.read_parquet("./DATA/map_plot.pq")
-
-def filter_data(df, pop):
-    return df.query("`POPULATION` > @pth")
+@st.cache_data
+def filter_data(df:pd.DataFrame, pop):
+    return df.query("`POPULATION` > @pop").sort_values(["year"])
 
 df = read_data()
 
@@ -64,7 +64,7 @@ fig = px.scatter_mapbox(
     df_to_plot,
     lat = "latitude", lon="longitude", size="size_to_plot", color="NUMBER OF MONTHS REPORTED", hover_name="agency_name_full",
     zoom= 2.7, center={'lat':37.0902, 'lon':-95.7129},
-    color_continuous_scale=[(0,"#f55b5b"),(0.7, "#87c487"), (1,"#a2d5f5")],
+    color_continuous_scale=[(0,"#f55b5b"),(0.7, "#87c487"), (1,"#a2d5f5")], range_color=[0,12],
     animation_frame="year",
     mapbox_style="carto-positron",
     hover_data={
