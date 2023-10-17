@@ -12,7 +12,7 @@ def read_NIBRS_file_paths(dir_path):
     for subdir in dir_path.iterdir():
 
         # Get a list of files in the subdirectory
-        files = [file for file in subdir.glob('*') if file.name != '.DS_Store']
+        files = [file for file in subdir.glob('*') if not file.name.startswith(".")]
 
         if len(files) != 1:
             print(f"Subdirectory {subdir} does not contain exactly one file.")
