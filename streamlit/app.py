@@ -60,6 +60,13 @@ pth = np.power(10, population_threshold)
 
 df_to_plot = filter_data(df, pth)
 
+columns = st.columns(2)
+
+with columns[0]:
+    df_to_plot
+
+
+
 fig = px.scatter_mapbox(
     df_to_plot,
     lat = "latitude", lon="longitude", size="size_to_plot", color="NUMBER OF MONTHS REPORTED", hover_name="agency_name_full",
@@ -76,4 +83,5 @@ fig = px.scatter_mapbox(
 fig.update_layout(height=600, margin={"r":0,"t":20,"l":50,"b":0})
 fig.update_coloraxes(colorbar={'orientation':'h', 'thickness':20, 'y': 1})
 
-st.plotly_chart(fig, use_container_width=True)
+with columns[1]:
+    st.plotly_chart(fig, use_container_width=True)
