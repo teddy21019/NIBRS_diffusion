@@ -1,3 +1,4 @@
+from pathlib import Path
 from sklearn.metrics.pairwise import cosine_similarity
 from scipy.sparse import csr_matrix
 from abc import ABC, abstractmethod
@@ -35,7 +36,8 @@ class CosineSimilarity(Similarity):
             raise ShapeMismatchError(f"Shape for each row in df is {df.shape[1]}, different from shape of weight vector {w_sqrt.shape[0]}")
 
         self.similarity_matrix = cosine_similarity(np.multiply(df, w_sqrt))
-        return self.similarity_matrix > self._th
+        n_row = df.shape[0]
+        return (self.similarity_matrix > self._th) * (np.ones((n_row, n_row)) - np.identity(n_row))   # no self loop
 
 class MatchNumberSimilarity(Similarity):
     """
@@ -63,6 +65,7 @@ class SimilarityNetwork:
         self.feature_n = len(self._df.columns)
         self.sm = similarity_measure
         self.nodes = self._df.index.to_list()
+        self.index_columns = index_column
 
     def fit_transform(self, weight = None):
         """
@@ -81,6 +84,28 @@ class SimilarityNetwork:
         """
         _G  = nx.from_numpy_array(self.adjacency_matrix)
         return nx.relabel_nodes(_G, {i:n for i, n in enumerate(self.nodes)})
+
+    @property
+    def degree(self):
+        return list(np.sum(self.adjacency_matrix.toarray(), axis = 0))
+
+    def export(self, path:Path|str, file_name:str, node_df:pd.DataFrame):
+        """
+        param
+        ------
+        path: Path of export. Should be folder
+        node_df: attribute for each node. Must have an columns that matches self.index_column for merging
+        """
+        rows = self.adjacency_matrix.tocoo().row
+        cols = self.adjacency_matrix.tocoo().col
+        edge_col = pd.DataFrame({'Source': rows, 'Target':cols})
+
+        node_id_name_df = pd.DataFrame([{'id': i, self.index_columns:c} for i,c in enumerate(self.nodes)])
+        nodes = node_id_name_df.merge(node_df, how = 'left', on = self.index_columns)
+
+        edge_col.to_csv(f"{path}/{file_name}_edge.csv", index = False)
+        nodes.to_csv(f"{path}/{file_name}_node.csv", index = False)
+
 
 class ShapeMismatchError(ValueError):
     pass
