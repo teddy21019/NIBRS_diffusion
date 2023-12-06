@@ -63,4 +63,52 @@ def plot_89(df:DF):
 """
     By strata stat for each category col
 """
+def get_cat_conti_columns_list(lemas_imputed:DF):
+    cat_allowed_values = {1, 2, 3, 4, 5, 6, 7, 8, -8, -88, -9}
 
+    no_string_columns = lemas_imputed.select_dtypes(exclude='object')
+
+    # Initialize lists to store information
+    cat_col_names = []
+    # Iterate through columns
+    for col in lemas_imputed.columns:
+        # Check if all values in the column are in the allowed set
+        if set(lemas_imputed[col].unique()).issubset(cat_allowed_values):
+            cat_col_names.append(col)
+
+    cat_col_names = set(cat_col_names)
+    continuous_col_names = set(no_string_columns) - cat_col_names
+    return cat_col_names, continuous_col_names
+
+
+def get_column_names_from_range_tuples(col_list: list[str], col_start_end_tuples: list[tuple[str, str]]) -> list[str]:
+    """
+    Get the entire slice of columns from a column list based on pairs of starts and ends of column slices.
+
+    Parameters:
+    - col_list (list[str]): The list of column names.
+    - col_start_end_tuples (list[tuple(str, str)]): List of tuples representing the start and end indices of column slices.
+
+    Returns:
+    - list[str]: The resulting list of column names based on the specified slices.
+    """
+    result_columns = []
+
+    for start, end in col_start_end_tuples:
+        try:
+            start_index = col_list.index(start)
+            end_index = col_list.index(end)
+            result_columns.extend(col_list[start_index:end_index + 1])
+        except ValueError:
+            # Handle the case where start or end column names are not in col_list
+            print(f"Column not found in the list: {start} or {end}")
+
+    return result_columns
+
+def transform_to_proportion(cols_to_transform:list[str], denominator_col:str) -> PipeLine:
+    def tran_fn(df:DF) -> DF:
+        df_new = df.copy()
+        for col in cols_to_transform:
+            df_new[col] = df_new[col]/ df_new[denominator_col]
+        return df_new
+    return tran_fn

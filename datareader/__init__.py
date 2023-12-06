@@ -11,6 +11,9 @@ def all_df_reader(pk_path: Path|str) -> pd.DataFrame:
     all_df["NUMBER OF MONTHS REPORTED"] = pd.to_numeric(all_df["NUMBER OF MONTHS REPORTED"])
     return all_df
 
+def LEMAS_reader(lemas_path:Path|str) -> pd.DataFrame:
+    lemas_df = pd.read_csv(lemas_path, delimiter='\t')
+    return lemas_df
 
 def _to_selected_agency_info(df:pd.DataFrame) -> pd.DataFrame:
     coords = df[["ori", "agency_name_full","longitude", "latitude"]].rename(columns={"ori":"ORI"})
