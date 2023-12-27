@@ -59,13 +59,17 @@ class SimilarityNetwork:
     and columns for matching, the class converts the data into fully numerical
     format for the `Similarity` subclass to function.
     """
-    def __init__(self, df:pd.DataFrame, similarity_measure: Similarity, index_column:str, match_columns:list[str]):
-        self._df: pd.DataFrame = df.set_index(index_column)[match_columns] # type: ignore
+    def __init__(self, df:pd.DataFrame, similarity_measure: Similarity, match_columns:list[str], index_column:str=None):
+        if index_column is not None:
+            self._df: pd.DataFrame = df.set_index(index_column)[match_columns] # type: ignore
+            self.index_columns = index_column
+        else:
+            self._df = df[match_columns]
+            self.index_columns = df.index
         self._df = pd.get_dummies(self._df)
         self.feature_n = len(self._df.columns)
         self.sm = similarity_measure
         self.nodes = self._df.index.to_list()
-        self.index_columns = index_column
 
     def fit_transform(self, weight = None):
         """
@@ -88,8 +92,7 @@ class SimilarityNetwork:
     @property
     def degree(self):
         return list(np.sum(self.adjacency_matrix.toarray(), axis = 0))
-
-    def export(self, path:Path|str, file_name:str, node_df:pd.DataFrame):
+    def export(self, path:Path|str, file_name:str, node_df:pd.DataFrame|None=None):
         """
         param
         ------
@@ -101,7 +104,10 @@ class SimilarityNetwork:
         edge_col = pd.DataFrame({'Source': rows, 'Target':cols})
 
         node_id_name_df = pd.DataFrame([{'id': i, self.index_columns:c} for i,c in enumerate(self.nodes)])
-        nodes = node_id_name_df.merge(node_df, how = 'left', on = self.index_columns)
+        if node_df is not None:
+            nodes = node_id_name_df.merge(node_df, how = 'left', on = self.index_columns)
+        else:
+            nodes = node_id_name_df
 
         edge_col.to_csv(f"{path}/{file_name}_edge.csv", index = False)
         nodes.to_csv(f"{path}/{file_name}_node.csv", index = False)
