@@ -1,9 +1,28 @@
+from pathlib import Path
 import pandas as pd
 import numpy as np
 from typing import TypeAlias, Callable
+from simnet.variety import log_normalize
 
 DF: TypeAlias = pd.DataFrame
 PipeLine: TypeAlias = Callable[[DF], DF]
+
+
+"""
+Main reader
+"""
+def lemas_df_cols(imputed_lemas_path:Path|str) -> tuple[DF, set[str], set[str]]:
+    """
+    Syntax candy for returning df, categorical columns, and continuous columns.
+    """
+    imputed_lemas: DF = pd.read_csv(imputed_lemas_path)
+    cat_col_names, continuous_col_names = get_cat_conti_columns_list(imputed_lemas)
+
+
+    df = imputed_lemas.astype({col:'category' for col in cat_col_names}).assign(
+        log_pop = lambda x: log_normalize(x['POPSERVED']), log_budget = lambda x: log_normalize(x['OPBUDGET'])
+        )
+    return df, cat_col_names, continuous_col_names
 
 """
     dtype tuning
@@ -76,9 +95,9 @@ def get_cat_conti_columns_list(lemas_imputed:DF):
         if set(lemas_imputed[col].unique()).issubset(cat_allowed_values):
             cat_col_names.append(col)
 
-    cat_col_names = set(cat_col_names)
-    continuous_col_names = set(no_string_columns) - cat_col_names
-    return cat_col_names, continuous_col_names
+    cat_col_names_set:set[str] = set(cat_col_names)
+    continuous_col_names_set:set[str] = set(no_string_columns) - cat_col_names_set
+    return cat_col_names_set, continuous_col_names_set
 
 
 def get_column_names_from_range_tuples(col_list: list[str], col_start_end_tuples: list[tuple[str, str]]) -> list[str]:
