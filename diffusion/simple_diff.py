@@ -1,4 +1,5 @@
 import numpy as np
+import networkx as nx
 
 def get_diffusion_diff(W:np.ndarray, state_dynamic: np.ndarray, th):
     """
@@ -38,3 +39,11 @@ def get_diffusion_diff(W:np.ndarray, state_dynamic: np.ndarray, th):
     )  # Squared difference, Result: Scalar
 
     return int(diff)
+
+def random_rewire(G:nx.Graph, th: float):
+    if th<0 or th>1:
+        raise ValueError("Threshold should be in (0,1)!")
+
+    random_G = nx.random_degree_sequence_graph([d for n, d in G.degree()])
+    rand_adj_matrix = nx.adjacency_matrix(random_G).toarray()
+    return rand_adj_matrix
