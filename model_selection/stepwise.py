@@ -4,7 +4,9 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from tqdm import tqdm
 import simnet.similarity
+import networkx as nx
 from diffusion.simple_diff import get_diffusion_diff, random_rewire
 
 class BackwardStepwise:
@@ -19,6 +21,7 @@ class BackwardStepwise:
             raise ValueError("Trait and dynamic dataframe should share same indices")
         self.traits_df = traits_df
         self.dynamic_df = dynamic_df
+        self.dynamic_np = self.dynamic_df.to_numpy(dtype=int)
         self.var_pool = var_pool
         self.similarity_metric = similarity_metric
 
@@ -33,6 +36,42 @@ class BackwardStepwise:
         """
         self.diffusion_diff_fn = fn
         return self
+
+    def get_origin_p_value(self):
+        """
+        Under the given list of variables, calculated the number of random rewiring in which the square error is smaller tha that of the baseline cosine similarity network.
+        """
+
+        baseline_sn = simnet.similarity.SimilarityNetwork(
+                    self.traits_df,
+                    self.similarity_metric,
+                    self.var_pool
+                    )
+        baseline_sn.fit_transform()
+        baseline_G = baseline_sn.network
+        baseline_W = np.matrix(baseline_sn.adjacency_matrix.toarray())
+        dynamic_numpy = self.dynamic_df.to_numpy()
+
+        def random_wire_diff(G:nx.Graph, th:float):
+            random_G = nx.random_degree_sequence_graph([d for n, d in G.degree()])
+            rand_adj_matrix = np.matrix( nx.adjacency_matrix(random_G).toarray() )
+            d = get_diffusion_diff(
+                rand_adj_matrix,
+                self.dynamic_np,
+                th
+            )
+            return d
+
+        th_change:list[float] = []
+        for i in tqdm(range(1,10)):
+            th = i/10.0
+            benchmark_diff = get_diffusion_diff(baseline_W, self.dynamic_np, th)
+            list_of_random = [random_wire_diff(baseline_G, th) for _ in range(100)]
+            th_change.append(
+                sum(benchmark_diff > diff for diff in list_of_random) / len(list_of_random)
+            )
+        self.th_change = th_change
+        return th_change
 
     def run(self):
 
