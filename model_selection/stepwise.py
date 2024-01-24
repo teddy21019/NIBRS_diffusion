@@ -122,6 +122,32 @@ class StepwiseExaminer:
             removal_dict[worst_col] = iteration[worst_col]
         return removal_dict
 
+    def get_optimal_cols_set(self,orig_cols:list[str], n:int =1,):
+
+        # removal_dict with min value
+        ranked = list(
+            dict(
+            sorted(self.removal_dict.items(), key= lambda item: item[1])
+             ).keys())[:n]
+
+        population = []
+
+        for col in ranked:                                  # col7, col4, col28, ...
+            solution_set = [1]*len(orig_cols)          # [1 1 1 1 1 1 ]
+
+            # when removed to col, who else is removed:
+            iteration_when_removed = self.remove_order.index(col)
+            who_else_is_removed = self.remove_order[:iteration_when_removed + 1]
+            for col2 in who_else_is_removed:
+                index_to_set_to_0 = orig_cols.index(col2)
+                solution_set[index_to_set_to_0] = 0
+
+            population.append(solution_set)
+
+        return population
+
+
+
     def score_evolution(self, include_not_removed = False):
 
         display_order  = list(
