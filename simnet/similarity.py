@@ -69,7 +69,6 @@ class SimilarityNetwork:
         self._df = pd.get_dummies(self._df)
         self.feature_n = len(self._df.columns)
         self.sm = similarity_measure
-        self.nodes = self._df.index.to_list()
 
     def fit_transform(self, weight = None):
         """
@@ -79,6 +78,10 @@ class SimilarityNetwork:
             self.sm.find_similarity_matrix(self._df.to_numpy(), weight)
         )
         return self.adjacency_matrix
+
+    @cached_property
+    def nodes(self) -> list[str]:
+        return self._df.index.to_list()
 
     @cached_property
     def network(self) -> nx.Graph:
