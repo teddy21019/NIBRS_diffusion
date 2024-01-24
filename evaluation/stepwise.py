@@ -29,7 +29,7 @@ class Stepwise:
 
         return score_lists, display_order
 
-    def plot_heatmap(self, top_n:10, include_not_removed = False, ax:plt.Axes = None, **kwargs):
+    def plot_heatmap(self, top_n=10, include_not_removed = False, ax:plt.Axes = None, **kwargs):
         import seaborn as sns
 
         if ax == None:
