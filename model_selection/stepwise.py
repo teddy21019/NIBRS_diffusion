@@ -54,12 +54,13 @@ class BackwardStepwise:
                     )
         baseline_sn.fit_transform()
         baseline_G = baseline_sn.network
-        baseline_W = np.matrix(baseline_sn.adjacency_matrix.toarray())
-        dynamic_numpy = self.dynamic_df.to_numpy()
+        baseline_W = baseline_sn.adjacency_matrix
+
 
         def random_wire_diff(G:nx.Graph, th:float):
-            random_G = nx.random_degree_sequence_graph([d for n, d in G.degree()])
-            rand_adj_matrix = np.matrix( nx.adjacency_matrix(random_G).toarray() )
+            # random_G = nx.random_degree_sequence_graph([d for n, d in G.degree()])    # This preserves the distribution
+            random_G = nx.gnm_random_graph(len(G.nodes), len(G.edges))
+            rand_adj_matrix = nx.adjacency_matrix(random_G).toarray().astype(np.float_)
             d = get_diffusion_diff(
                 rand_adj_matrix,
                 self.dynamic_np,
@@ -68,8 +69,8 @@ class BackwardStepwise:
             return d
 
         th_change:list[float] = []
-        for i in tqdm(range(1,10)):
-            th = i/10.0
+        for i in tqdm(range(1,bin)):
+            th = float(i/bin)
             benchmark_diff = get_diffusion_diff(baseline_W, self.dynamic_np, th)
             list_of_random = [random_wire_diff(baseline_G, th) for _ in range(100)]
             th_change.append(
@@ -131,6 +132,9 @@ class StepwiseExaminer:
         self.removal_dict = self.get_removal_dict()
         self.remove_order  = list(self.removal_dict.keys())       # the order of removal
     def get_removal_dict(self):
+        """
+        for each entry: key=remove this performs the best; value=the improved score
+        """
         removal_dict:dict[str, float] = {}
         for iteration in self.log:
             rank_by_se = dict(sorted(iteration.items(), key=lambda item: item[1]))
@@ -166,10 +170,9 @@ class StepwiseExaminer:
 
     def score_evolution(self, include_not_removed = False):
 
-        display_order  = list(
+        display_order  = self.remove_order +  list(
                 set(self.orig_cols) - set(self.remove_order) if include_not_removed else set()
-            ) + self.remove_order
-
+            )
         score_lists = []
         for iteration in self.log:
             score_list = [iteration.get(col, 1) for col in display_order]
@@ -222,10 +225,10 @@ class StepwiseExaminer:
         A = self.score_evolution()[1]
         B = other.score_evolution()[1]
         # Plot elements of A on the left
-        ax.scatter(np.zeros(len(A)), np.arange(len(A)), marker='o', color='blue', label='0.8', s=2)
+        ax.scatter(np.zeros(len(A)), np.arange(len(A)), marker='o', color='blue', label='Left', s=2)
 
         # Plot elements of B on the right
-        ax.scatter(np.ones(len(B)), np.arange(len(B)), marker='o', color='green', label='0.7', s=2)
+        ax.scatter(np.ones(len(B)), np.arange(len(B)), marker='o', color='green', label='Right', s=2)
 
         # Draw lines between similar elements
         for a in A:
@@ -243,3 +246,18 @@ class StepwiseExaminer:
         ax.legend();
 
         return fig
+
+
+
+def varibale_survival_analysis(dict_of_stepwise:dict[float, StepwiseExaminer], percentage:float = 0.5):
+    num_of_var_to_extract:int = floor(
+        len(list(dict_of_stepwise.values())[0].orig_cols) * percentage
+        )
+
+    orders_of_variables:dict[float, list[str]]= {k:
+                                                 list(reversed(v.score_evolution(True)[1]))[:num_of_var_to_extract]
+                                                 for k,v in dict_of_stepwise.items()}
+    flatten_list_of_variables = reduce(lambda a,b: a+b ,orders_of_variables.values(), [])
+
+    # counting
+    return Counter(flatten_list_of_variables)
