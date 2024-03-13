@@ -8,6 +8,7 @@ from tqdm import tqdm
 import simnet.similarity
 import networkx as nx
 from diffusion.simple_diff import get_diffusion_diff, random_rewire
+from joblib import delayed, Parallel
 
 class BackwardStepwise:
     def __init__(self,
@@ -21,7 +22,7 @@ class BackwardStepwise:
             raise ValueError("Trait and dynamic dataframe should share same indices")
         self.traits_df = traits_df
         self.dynamic_df = dynamic_df
-        self.dynamic_np = self.dynamic_df.to_numpy(dtype=int)
+        self.dynamic_np = self.dynamic_df.to_numpy(dtype=np.float_)
         self.var_pool = var_pool
         self.similarity_metric = similarity_metric
 
@@ -37,7 +38,7 @@ class BackwardStepwise:
         self.diffusion_diff_fn = fn
         return self
 
-    def get_origin_p_value(self):
+    def get_origin_p_value(self, bin:int = 10):
         """
         Under the given list of variables, calculated the number of random rewiring in which the square error is smaller tha that of the baseline cosine similarity network.
         """
@@ -73,29 +74,17 @@ class BackwardStepwise:
         self.th_change = th_change
         return th_change
 
-    def run(self):
+    def run(self,parallel = False):
 
         self.removal_dict:dict[str, int] = {}
         self.logging:list[dict[str, int]] = []
         cols_to_include_for_removal = self.var_pool.copy()
 
         while (n:=len(cols_to_include_for_removal) )>=self.remaining_vars:
-            diff_dict = dict()
-            for cat_col_i, col_name in enumerate(cols_to_include_for_removal):
-
-                col_to_try = cols_to_include_for_removal[:cat_col_i] + cols_to_include_for_removal[cat_col_i+1:]
-                sn = simnet.similarity.SimilarityNetwork(
-                    self.traits_df,
-                    self.similarity_metric,
-                    col_to_try
-                )
-                W = sn.fit_transform().toarray()
-                diff = self.diffusion_diff_fn(
-                    np.matrix(W),
-                    self.dynamic_df.to_numpy(dtype=int)
-                )
-
-                diff_dict[col_name] = diff
+            if not parallel:
+                diff_dict = dict(self.compute_diffusion_diff(cat_col_i, col_name, cols_to_include_for_removal) for cat_col_i, col_name in enumerate(cols_to_include_for_removal))
+            else:
+                diff_dict = self.__parallel_runner(cols_to_include_for_removal)
 
             rank_by_se = dict(sorted(diff_dict.items(), key=lambda item: item[1]))
             worst_col =  list(rank_by_se.keys())[0] ## Remove this columns yields the best performance improve
@@ -103,6 +92,29 @@ class BackwardStepwise:
             self.removal_dict[worst_col] = rank_by_se[worst_col]
             print(n, worst_col, rank_by_se[worst_col], sep='\t')
             cols_to_include_for_removal.remove(worst_col)
+
+    def __parallel_runner(self, cols_to_include_for_removal:list[str]) -> dict[str, int]:
+
+        num_jobs = -1
+        diff_dict = dict(Parallel(n_jobs=num_jobs)(
+                    delayed(self.compute_diffusion_diff)(cat_col_i, col_name, cols_to_include_for_removal)
+                    for cat_col_i, col_name in enumerate(cols_to_include_for_removal)
+                ))
+        return diff_dict
+
+    # Define a function that performs the computation for a single category
+    def compute_diffusion_diff(self, cat_col_i:int, col_name:str , cols_to_include_for_removal:list[str]):
+        col_to_try = cols_to_include_for_removal[:cat_col_i] + cols_to_include_for_removal[cat_col_i+1:]
+        sn = simnet.similarity.SimilarityNetwork(
+            self.traits_df,
+            self.similarity_metric ,
+            col_to_try)
+        W = sn.fit_transform()
+
+        diff = self.diffusion_diff_fn(W,
+                                  self.dynamic_np)
+
+        return col_name, diff
 
     def get_examiner(self):
         return StepwiseExaminer(self.logging)
