@@ -1,5 +1,9 @@
+from collections import Counter
+from functools import reduce
+from math import floor
 from operator import index
-from typing import Any, Callable, Self
+from re import U
+from typing import Any, Callable, Self, Iterable
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
