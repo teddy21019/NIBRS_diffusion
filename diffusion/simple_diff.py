@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.typing as npt
 import networkx as nx
 import numba
 
@@ -87,3 +88,28 @@ def random_rewire(G:nx.Graph, th: float):
     random_G = nx.random_degree_sequence_graph([d for n, d in G.degree()])
     rand_adj_matrix = nx.adjacency_matrix(random_G).toarray()
     return rand_adj_matrix
+
+@numba.njit
+def prediction_markov_diffusion_diff_dynamic(W:npt.NDArray[np.float_], state_dynamic:npt.NDArray[np.bool_], th:float):
+    """
+    The prediction depends solely on the initial realized state given by
+    state_dynamic. For each period so on, the predicted state is the diffusion
+    from previous prediction state.
+    """
+
+    n_nodes = state_dynamic.shape[0]        # number of agencies
+    n_periods = state_dynamic.shape[1]      # number of periods including init state
+    n_neighbors = np.sum(W, axis=1, dtype=np.float64)  # Size: N x 1 matrix since sum along axis = 1
+
+    init_state = state_dynamic[:,0]
+    state_prediction  = np.zeros_like(state_dynamic)
+    state_prediction[:,0] = init_state
+
+    for i in range(1,n_periods-1):
+        prev_state = state_prediction[:, i-1]           # N x 1
+        neighbors_state_sum = W @ prev_state            # (N x N) x (N x 1)
+        neighbors_adopt_ratio = np.nan_to_num(neighbors_state_sum / n_neighbors)
+        agency_should_adopt  = neighbors_adopt_ratio > th
+        state_prediction[:, i] = agency_should_adopt
+
+    return np.sum((state_prediction - state_dynamic)**2, axis=0)
